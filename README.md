@@ -111,6 +111,26 @@ Visit `http://localhost:3000` to access the application.
 - **Classes**: 18 (9 fresh + 9 rotten varieties)
 - **Training**: Custom dataset with data augmentation
 
+## 📊 MLflow Experiment Tracking
+
+MLflow is an optional dependency used to track CNN training runs. Install the backend requirements first (including TensorFlow), then install the experiment-tracking and data utilities:
+
+```bash
+python -m pip install -r backend/requirements.txt
+python -m pip install -r backend/requirements-mlflow.txt
+python backend/train_tracking.py
+```
+
+The script uses the class folders in `ml/data` (the current `ml/dataset_manifest.csv` contains only its header), creates the same stratified 80/20 split for both runs, and trains the notebook's simple CNN architecture for 10 and 12 epochs. Fourteen WebP images are excluded because the notebook's Keras image generator does not accept that format. It records per-epoch training/validation metrics, final validation accuracy and loss, macro F1, parameters, and the trained Keras model for each run.
+
+By default, tracking metadata is stored in the root-level `mlflow.db` SQLite database, with model artifacts under `mlartifacts/`. These generated files are ignored by Git. To view runs locally, start the UI from the repository root:
+
+```bash
+mlflow ui --backend-store-uri sqlite:///mlflow.db --host 127.0.0.1 --port 5000
+```
+
+Then open `http://127.0.0.1:5000`. Set `MLFLOW_TRACKING_URI` to use a different tracking server or database. Both runs train models from scratch on the same split; the 12-epoch run is not initialized from the 10-epoch model.
+
 ## 🛠️ Tech Stack
 
 **Frontend:**

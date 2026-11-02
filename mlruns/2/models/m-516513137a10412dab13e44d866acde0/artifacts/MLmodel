@@ -1,0 +1,20 @@
+artifact_path: file:///C:/ProjectFiles/Fruit-Veg-CNN-FOML/mlruns/2/models/m-516513137a10412dab13e44d866acde0/artifacts
+flavors:
+  keras:
+    data: data
+    keras_backend: tensorflow
+    keras_version: 3.13.1
+    save_exported_model: false
+  python_function:
+    env:
+      conda: conda.yaml
+      virtualenv: python_env.yaml
+    loader_module: mlflow.keras
+    python_version: 3.11.0
+mlflow_version: 3.17.2
+model_id: m-516513137a10412dab13e44d866acde0
+model_size_bytes: 88779970
+model_uuid: m-516513137a10412dab13e44d866acde0
+prompts: null
+run_id: a21eb28c23c94642b37e0533e4add9dd
+utc_time_created: '2026-11-02 02:13:11.197793'
