@@ -1,7 +1,8 @@
 from fastapi import FastAPI, UploadFile, File, HTTPException
-from fastapi.responses import FileResponse, StreamingResponse, JSONResponse
+from fastapi.responses import FileResponse, Response, StreamingResponse, JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
+from prometheus_client import CONTENT_TYPE_LATEST, generate_latest
 from PIL import Image
 import io
 import os
@@ -9,7 +10,6 @@ from time import perf_counter
 from pathlib import Path
 from metrics import (
     PrometheusMiddleware,
-    metrics_app,
     observe_inference,
     record_prediction,
 )
@@ -113,7 +113,8 @@ async def predict_image():
     return JSONResponse({
         "prediction": result,
         "count": 1,
-        "mode": "single"
+        "mode": "single",
+        "demo_mode": True,
     })
 
 
@@ -141,7 +142,8 @@ async def predict_many(threshold: float = 0.5):
         "count": len(detections),
         "mode": "multiple",
         "threshold": threshold,
-        "visualize_url": f"/visualize/?threshold={threshold}"
+        "visualize_url": f"/visualize/?threshold={threshold}",
+        "demo_mode": True,
     })
 
 
@@ -220,7 +222,8 @@ async def get_summary():
         "rotten_count": len(rotten_items),
         "fresh_items": fresh_items,
         "rotten_items": rotten_items,
-        "ingredients_for_recipes": ingredients
+        "ingredients_for_recipes": ingredients,
+        "demo_mode": True,
     })
 
 
@@ -238,6 +241,14 @@ async def health_check():
     return {"status": "ok"}
 
 
+@app.get("/metrics", include_in_schema=False)
+async def prometheus_metrics():
+    return Response(
+        content=generate_latest(),
+        headers={"Content-Type": CONTENT_TYPE_LATEST},
+    )
+
+
 @app.get("/health/", include_in_schema=False)
 async def detailed_health_check():
     return {
@@ -247,5 +258,4 @@ async def detailed_health_check():
     }
 
 
-app.mount("/metrics", metrics_app, name="metrics")
 app.mount("/", StaticFiles(directory=FRONTEND2_DIR, html=True), name="frontend2")

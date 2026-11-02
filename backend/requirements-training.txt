@@ -1,0 +1,2 @@
+-r requirements-mlflow.txt
+tensorflow==2.20.0

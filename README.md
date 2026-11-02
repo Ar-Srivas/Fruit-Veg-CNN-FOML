@@ -1,31 +1,25 @@
-# FoodLens - AI-Powered Fruit & Vegetable Freshness Detector
+# FoodLens - Fruit & Vegetable Freshness Demo
 
-**FoodLens** is an intelligent web application that uses deep learning to detect and classify fruits and vegetables as fresh or rotten. It combines computer vision with recipe recommendations to help reduce food waste and inspire cooking.
+**FoodLens** is a web application demo for fruit and vegetable freshness checking and recipe recommendations. The deployed backend returns fixed sample carrot, tomato, and banana results; it does not analyze uploaded image contents.
 
-![TensorFlow](https://img.shields.io/badge/TensorFlow-2.20.0-orange)
-![Next.js](https://img.shields.io/badge/Next.js-14+-black)
+![Demo](https://img.shields.io/badge/predictions-sample%20data-orange)
 ![FastAPI](https://img.shields.io/badge/FastAPI-0.115-teal)
 
 ## ✨ Features
 
-###  **Dual Detection Modes**
-- **Single Item Detection**: Classify a single fruit/vegetable with confidence scores
-- **Multi-Item Detection**: Detect and classify multiple items in one image with bounding boxes
+### **Demo Detection Modes**
+- **Single Item Demo**: Returns fixed carrot and tomato sample predictions
+- **Multi-Item Demo**: Returns fixed carrot, tomato, and banana sample detections with illustrative bounding boxes
 
-###  **Advanced ML Architecture**
-- **Object Detection**: SSD MobileNet V2 from TensorFlow Hub for real-time object detection
-- **Classification**: Custom fine-tuned MobileNet V2 CNN trained on 18 fruit/vegetable classes
-- **Classes Supported**:
-  - **Fresh**: Apple, Banana, Carrot, Cucumber, Mango, Orange, Potato, Strawberry, Tomato
-  - **Rotten**: Apple, Banana, Carrot, Cucumber, Mango, Orange, Potato, Strawberry, Tomato
+These are placeholder responses for deployment and UI demonstrations. They are not model predictions and do not depend on image contents.
 
 ###  **Visual Feedback**
 - Color-coded bounding boxes (green for fresh, red for rotten)
-- Confidence scores for each detection
-- Annotated images with labels and predictions
+- Clearly marked sample scores for each example
+- Annotated images with illustrative labels and boxes
 
 ###  **Smart Recipe Recommendations**
-- Automatically suggests recipes based on detected fresh ingredients
+- Can suggest recipes based on the fixed fresh sample ingredients
 - Integration with Spoonacular API
 - Detailed recipe cards with cooking times, servings, and ingredients
 
@@ -39,49 +33,35 @@
 ```
 Fruit-Veg-CNN-FOML/
 ├── backend/              # FastAPI server
-│   ├── app.py           # Main API endpoints
-│   ├── model_classifier.py    # Single-item CNN classifier
-│   ├── model_finetuned.py     # Multi-item detector + classifier
-│   ├── recipe_api.py    # Recipe recommendation API
-│   └── requirements.txt
-├── frontend/            # Next.js web application
-│   ├── src/
-│   │   └── app/
-│   │       ├── page.js  # Main detection interface
-│   │       ├── recipes/page.js  # Recipe explorer
-│   │       └── layout.js
-│   └── next.config.mjs
-└── ml/                  # Model training and utilities
+│   ├── app.py                 # API and frontend2 serving
+│   ├── model_classifier.py    # Fixed single-item demo response
+│   ├── model_finetuned.py     # Fixed multi-item demo response
+│   ├── recipe_api.py          # Recipe recommendation API
+│   └── requirements.txt       # Lightweight deployment dependencies
+├── frontend2/           # Static HTML, CSS, and JavaScript frontend
+└── ml/                  # Optional model training utilities
 ```
 
 ## 🚀 Getting Started
 
 ### Prerequisites
-- Python 3.10+
-- Node.js 18+
-- TensorFlow 2.20.0
+- Python 3.11+
 
 ### Backend Setup
 
 ```bash
 cd backend
-pip install -r requirements. txt
+pip install -r requirements.txt
 uvicorn app:app --reload --host 0.0.0.0 --port 8000
 ```
 
-### Frontend Setup
+The backend runtime uses Pillow for image uploads and annotations. TensorFlow is not installed or needed to run the deployed demo.
 
-```bash
-cd frontend
-npm install
-npm run dev
-```
-
-Visit `http://localhost:3000` to access the application.
+The backend serves the static `frontend2` application at `http://localhost:8000`; no Node.js build is required.
 
 ### Run the backend and `frontend2` in Docker
 
-Build the image from the repository root (the build context must include both `backend/` and `frontend2/`):
+Build the image from the repository root (the build context must include both `backend/` and `frontend2/`). Uvicorn listens on port 8000 inside the container:
 
 ```bash
 docker build -t foodlens .
@@ -92,7 +72,26 @@ Open `http://localhost:8000`. To enable recipe lookup, provide the backend's `AP
 
 ### Deploy to Kubernetes
 
-`k8s/deployment.yaml` expects the ACR login server from Terraform and an image tag to be substituted into its image field before applying. The deployment uses one replica because uploaded images and detections are stored in FastAPI process memory. The optional `foodlens-secrets` Kubernetes Secret can supply the Spoonacular `API_KEY`.
+Terraform provisions a unique ACR name and grants the AKS kubelet identity permission to pull images. The Kubernetes Service exposes port 80 and forwards traffic to the container's port 8000. After applying Terraform and allowing the ACR role assignment to propagate, run these PowerShell commands from the repository root to build a Linux/AMD64 image, push a unique tag, and deploy that exact tag:
+
+```powershell
+$acrLoginServer = terraform -chdir=terraform output -raw acr_login_server
+$acrName = $acrLoginServer -replace '\.azurecr\.io$', ''
+$imageTag = "$(Get-Date -Format 'yyyyMMddHHmmss')-$([guid]::NewGuid().ToString('N').Substring(0, 8))"
+
+az acr login --name $acrName
+docker build --platform linux/amd64 -t "${acrLoginServer}/foodlens:${imageTag}" .
+docker push "${acrLoginServer}/foodlens:${imageTag}"
+
+az aks get-credentials --resource-group rg-foodlens-mlops --name aks-foodlens-cluster
+(Get-Content k8s/deployment.yaml -Raw) `
+  -replace '\$\{ACR_LOGIN_SERVER\}', $acrLoginServer `
+  -replace '\$\{IMAGE_TAG\}', $imageTag |
+  kubectl apply -f -
+kubectl rollout status deployment/foodlens-app
+```
+
+The deployment and its probes target container port 8000; the Kubernetes Service exposes port 80 and forwards traffic to that container port. It uses one replica because uploads and detections are stored in FastAPI process memory. The optional `foodlens-secrets` Kubernetes Secret can supply the Spoonacular `API_KEY`. The Terraform ACR name includes a generated suffix, so use its output rather than a hard-coded registry name.
 
 ### Prometheus metrics
 
@@ -114,41 +113,27 @@ To enable Spoonacular recipe lookup, set `API_KEY` in your shell before starting
 
 | Endpoint | Method | Description |
 |----------|--------|-------------|
-| `/upload/` | POST | Upload image for analysis |
-| `/predict/` | GET | Single-item classification |
-| `/predict_many/` | GET | Multi-item detection & classification |
-| `/visualize/` | GET | Get annotated image with bounding boxes |
-| `/summary/` | GET | Get detection summary statistics |
+| `/upload/` | POST | Upload image for display (not analyzed) |
+| `/predict/` | GET | Fixed single-item sample result |
+| `/predict_many/` | GET | Fixed multi-item sample results |
+| `/visualize/` | GET | Sample bounding boxes drawn on the uploaded image |
+| `/summary/` | GET | Summary of sample results |
 | `/api/recipes/` | GET | Get recipe recommendations |
 
 ## 🎯 How It Works
 
-1. **Upload Image**: User uploads a photo containing fruits/vegetables
-2. **Detection**: SSD MobileNet V2 detects objects in the image
-3. **Classification**: Each detected object is cropped and classified using a fine-tuned CNN
-4. **Analysis**: Results categorized as fresh or rotten with confidence scores
-5. **Recommendations**: Fresh ingredients are used to suggest recipes
+1. **Upload Image**: The image is displayed for demonstration; its contents are not analyzed.
+2. **Sample Results**: The API returns fixed carrot, tomato, and banana examples with illustrative boxes and scores.
+3. **Recommendations**: Recipe suggestions can use the fixed fresh sample ingredients.
 
-## 🧪 Model Details
-
-### Object Detector
-- **Model**: SSD MobileNet V2 (TensorFlow Hub)
-- **Purpose**:  Localize fruits/vegetables in images
-- **Output**: Bounding boxes with confidence scores
-
-### Classifier
-- **Architecture**: MobileNet V2 (fine-tuned)
-- **Input Size**: 128x128 RGB
-- **Classes**: 18 (9 fresh + 9 rotten varieties)
-- **Training**: Custom dataset with data augmentation
+This is a deployment/UI demo, not a freshness assessment tool. API prediction responses include `demo_mode: true`.
 
 ## 📊 MLflow Experiment Tracking
 
-MLflow is an optional dependency used to track CNN training runs. Install the backend requirements first (including TensorFlow), then install the experiment-tracking and data utilities:
+TensorFlow is excluded from the deployable runtime. It is only needed if you choose to run the separate local CNN training and MLflow workflow:
 
 ```bash
-python -m pip install -r backend/requirements.txt
-python -m pip install -r backend/requirements-mlflow.txt
+python -m pip install -r backend/requirements-training.txt
 python backend/train_tracking.py
 ```
 
@@ -165,17 +150,13 @@ Then open `http://127.0.0.1:5000`. Set `MLFLOW_TRACKING_URI` to use a different 
 ## 🛠️ Tech Stack
 
 **Frontend:**
-- Next.js 14
-- Tailwind CSS
+- Static HTML, CSS, and JavaScript
 
 **Backend:**
 - FastAPI
-- TensorFlow 2.20
-- TensorFlow Hub
-- OpenCV
 - PIL (Pillow)
+- Prometheus client
 
 **ML/AI:**
-- SSD MobileNet V2 (Object Detection)
-- MobileNet V2 (Classification)
-- Custom CNN architecture
+- Optional local TensorFlow CNN training (`backend/requirements-training.txt`)
+- Fixed sample predictions in the deployed application

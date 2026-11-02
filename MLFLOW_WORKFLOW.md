@@ -5,8 +5,7 @@
 Run these commands from the repository root.
 
 ```powershell
-python -m pip install -r backend\requirements.txt
-python -m pip install -r backend\requirements-mlflow.txt
+python -m pip install -r backend\requirements-training.txt
 python backend\train_tracking.py
 mlflow ui --backend-store-uri sqlite:///mlflow.db --host 127.0.0.1 --port 5000
 ```

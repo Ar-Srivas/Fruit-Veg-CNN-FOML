@@ -1,94 +1,52 @@
-import tensorflow_hub as hub
-import tensorflow as tf
-import numpy as np
-import cv2
-from PIL import Image, ImageDraw, ImageFont
-from tensorflow.keras.models import load_model
+from PIL import ImageDraw, ImageFont
 
 
-detector = hub.load("https://tfhub.dev/tensorflow/ssd_mobilenet_v2/2")
-classifier = load_model("veg_fruit_classifier_mobilenetv2_128.keras")
-
-
-class_names = [
-    'FreshApple', 'FreshBanana', 'FreshCarrot', 'FreshCucumber', 'FreshMango',
-    'FreshOrange', 'FreshPotato', 'FreshStrawberry', 'FreshTomato',
-    'RottenApple', 'RottenBanana', 'RottenCarrot', 'RottenCucumber',
-    'RottenMango', 'RottenOrange', 'RottenPotato', 'RottenStrawberry', 'RottenTomato'
-]
+def _scaled_box(image_size, fractions):
+    width, height = image_size
+    left, top, right, bottom = fractions
+    x1 = min(width - 1, max(0, round(width * left)))
+    y1 = min(height - 1, max(0, round(height * top)))
+    x2 = min(width, max(x1 + 1, round(width * right)))
+    y2 = min(height, max(y1 + 1, round(height * bottom)))
+    return [x1, y1, x2, y2]
 
 
 def detect_and_classify(image_pil, score_threshold=0.5):
-    img = np.array(image_pil)
-    input_tensor = tf.expand_dims(img, 0)
-    detections = detector(input_tensor)
-
-    boxes = detections["detection_boxes"][0].numpy()
-    scores = detections["detection_scores"][0].numpy()
-
-    h, w, _ = img.shape
-    predictions = []
-
-    for i in range(len(scores)):
-        if scores[i] < score_threshold:
-            continue
-
-        y1, x1, y2, x2 = boxes[i]
-        (x1, y1, x2, y2) = (int(x1 * w), int(y1 * h), int(x2 * w), int(y2 * h))
-
-        crop = img[y1:y2, x1:x2]
-        if crop.size == 0:
-            continue
-
-        crop_resized = cv2.resize(crop, (128, 128))
-        crop_array = np.expand_dims(crop_resized, axis=0)
-
-        preds = classifier.predict(crop_array, verbose=0)
-        label = class_names[np.argmax(preds)]
-        confidence = np.max(preds)
-
-        predictions.append({
-            "bbox": [x1, y1, x2, y2],
+    """Return fixed sample detections; image content is not analyzed."""
+    examples = [
+        ("FreshCarrot", 0.96, (0.08, 0.12, 0.42, 0.78)),
+        ("FreshTomato", 0.91, (0.55, 0.16, 0.88, 0.52)),
+        ("RottenBanana", 0.84, (0.34, 0.58, 0.76, 0.9)),
+    ]
+    return [
+        {
+            "bbox": _scaled_box(image_pil.size, box),
             "label": label,
-            "confidence": float(confidence)
-        })
-
-    return predictions
+            "confidence": confidence,
+        }
+        for label, confidence, box in examples
+        if confidence >= score_threshold
+    ]
 
 
 def draw_predictions_on_image(image_pil, predictions):
-    img = image_pil.copy()
-    draw = ImageDraw.Draw(img)
+    image = image_pil.copy().convert("RGB")
+    draw = ImageDraw.Draw(image)
+    font = ImageFont.load_default()
 
-    try:
-        font = ImageFont.truetype("arial.ttf", 20)
-        small_font = ImageFont.truetype("arial.ttf", 16)
-    except:
-        font = ImageFont.load_default()
-        small_font = ImageFont.load_default()
+    for prediction in predictions:
+        label = prediction["label"]
+        color = "#23864b" if label.startswith("Fresh") else "#c3443b"
+        box = prediction["bbox"]
+        draw.rectangle(box, outline=color, width=3)
+        text = f'{label} (sample {prediction["confidence"]:.0%})'
+        text_box = draw.textbbox((box[0], max(0, box[1] - 14)), text, font=font)
+        draw.rectangle(text_box, fill=color)
+        draw.text(
+            (box[0], max(0, box[1] - 14)),
+            text,
+            fill="white",
+            font=font,
+        )
 
-    for pred in predictions:
-        bbox = pred["bbox"]
-        label = pred["label"]
-        confidence = pred["confidence"]
-
-        x1, y1, x2, y2 = bbox
-
-        if label.startswith("Fresh"):
-            color = "#00FF00"  # Green for fresh
-        elif label.startswith("Rotten"):
-            color = "#FF0000"  # Red for rotten
-        else:
-            color = "#FFFF00"  # Yellow for unknown
-
-        draw.rectangle([x1, y1, x2, y2], outline=color, width=3)
-
-        display_label = label.replace("Fresh", "Fresh ").replace("Rotten", "Rotten ")
-        text = f"{display_label} ({confidence:.2f})"
-
-        text_bbox = draw.textbbox((x1, y1 - 25), text, font=small_font)
-        draw.rectangle(text_bbox, fill=color)
-
-        draw.text((x1, y1 - 25), text, fill="black", font=small_font)
-
-    return img
+    return image

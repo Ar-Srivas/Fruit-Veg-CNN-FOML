@@ -95,13 +95,13 @@ function renderPrediction(prediction, caption) {
     <article class="prediction-card">
       <div class="prediction-top">
         <div>
-          <p class="prediction-caption">${caption}</p>
+          <p class="prediction-caption">Demo sample · ${caption}</p>
           <h4 class="prediction-label">${label}</h4>
         </div>
-        <span class="confidence-pill ${confidenceClass(confidence)}">${formatPercent(confidence)}% confidence</span>
+        <span class="confidence-pill ${confidenceClass(confidence)}">${formatPercent(confidence)}% sample score</span>
       </div>
       <div class="confidence-row">
-        <span>Confidence</span>
+        <span>Sample score</span>
         <div class="confidence-track"><div class="confidence-fill" style="width:${formatPercent(confidence)}%"></div></div>
         <strong>${formatPercent(confidence)}%</strong>
       </div>
@@ -148,18 +148,18 @@ async function uploadSelectedImage() {
 async function runSinglePrediction() {
   if (!selectedFile || isLoading) return;
   setBusy(true);
-  setMessage("Uploading your image and checking freshness…");
+  setMessage("Uploading your image and loading a sample result…");
   clearResults();
 
   try {
     await uploadSelectedImage();
     const data = await requestJSON(`${API_BASE_URL}/predict/`);
     const result = document.querySelector("#single-results");
-    result.innerHTML = `<h3 class="result-heading">Freshness check</h3>${renderPrediction(data.prediction, "Primary detection")}${data.prediction?.second_prediction ? `<div style="height:9px"></div>${renderPrediction(data.prediction.second_prediction, "Second most likely")}` : ""}`;
+    result.innerHTML = `<h3 class="result-heading">Sample freshness result</h3>${renderPrediction(data.prediction, "primary item")}${data.prediction?.second_prediction ? `<div style="height:9px"></div>${renderPrediction(data.prediction.second_prediction, "alternate item")}` : ""}`;
     result.hidden = false;
     imagePreview.src = uploadedImageUrl;
-    document.querySelector("#image-heading").textContent = "Your freshness check";
-    setMessage("Freshness check complete.");
+    document.querySelector("#image-heading").textContent = "Sample result";
+    setMessage("Demo result shown — this sample prediction was not generated from the image.");
   } catch (error) {
     setMessage(`Could not check this image: ${error.message}`, true);
   } finally {
@@ -170,7 +170,7 @@ async function runSinglePrediction() {
 async function runMultipleDetection() {
   if (!selectedFile || isLoading) return;
   setBusy(true);
-  setMessage("Uploading your image and scanning for produce…");
+  setMessage("Uploading your image and loading sample produce…");
   clearResults();
 
   try {
@@ -182,7 +182,7 @@ async function runMultipleDetection() {
 
     const summarySection = document.querySelector("#summary-section");
     summarySection.innerHTML = `
-      <h3 class="result-heading">Detection summary</h3>
+      <h3 class="result-heading">Sample scan summary</h3>
       <div class="summary-cards">
         <div class="summary-card"><div class="summary-value">${Number(summary.total_items) || 0}</div><div class="summary-label">Total items</div></div>
         <div class="summary-card fresh"><div class="summary-value">${Number(summary.fresh_count) || 0}</div><div class="summary-label">Fresh</div></div>
@@ -192,19 +192,19 @@ async function runMultipleDetection() {
 
     const multipleSection = document.querySelector("#multiple-results");
     multipleSection.innerHTML = `
-      <h3 class="lower-heading">Detected items (${results.length})</h3>
+      <h3 class="lower-heading">Sample items (${results.length})</h3>
       ${results.length ? `<div class="detection-grid">${results.map((item) => {
         const fresh = String(item.label || "").startsWith("Fresh");
         const name = String(item.label || "Unknown").replace(/^(Fresh|Rotten)\s*/, "");
-        return `<article class="detection-card ${fresh ? "" : "rotten"}"><p class="detection-name">${escapeHTML(name)}</p><span class="detection-confidence">${formatPercent(item.confidence)}%</span><p class="detection-state">${fresh ? "Fresh" : "Rotten"}</p></article>`;
-      }).join("")}</div>` : '<p class="empty-copy">No produce was detected in this image. Try a clearer photo with the items in view.</p>'}`;
+        return `<article class="detection-card ${fresh ? "" : "rotten"}"><p class="detection-name">${escapeHTML(name)}</p><span class="detection-confidence">${formatPercent(item.confidence)}% sample score</span><p class="detection-state">${fresh ? "Fresh" : "Rotten"}</p></article>`;
+      }).join("")}</div>` : '<p class="empty-copy">No sample entries meet this score threshold.</p>'}`;
     multipleSection.hidden = false;
 
     annotatedImageUrl = `${API_BASE_URL}/visualize/?threshold=${threshold}&t=${Date.now()}`;
     imagePreview.src = annotatedImageUrl;
     showOriginalButton.hidden = false;
-    document.querySelector("#image-heading").textContent = "Scan results";
-    setMessage("Produce scan complete.");
+    document.querySelector("#image-heading").textContent = "Sample scan results";
+    setMessage("Demo scan shown — these sample items are not based on your image.");
 
     const ingredients = Array.isArray(summary.ingredients_for_recipes) ? summary.ingredients_for_recipes : [];
     if (ingredients.length) await loadSuggestedRecipes(ingredients);

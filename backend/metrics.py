@@ -1,7 +1,7 @@
 from time import perf_counter
 from typing import Any
 
-from prometheus_client import Counter, Histogram, make_asgi_app
+from prometheus_client import Counter, Histogram
 
 HTTP_REQUEST_COUNTER = Counter(
     "fastapi_http_requests_total",
@@ -20,9 +20,6 @@ PREDICTION_BY_CLASS = Counter(
     "Count of items detected grouped by freshness status and category",
     ["item_class", "status"],
 )
-
-metrics_app = make_asgi_app()
-
 
 class PrometheusMiddleware:
     def __init__(self, app: Any):

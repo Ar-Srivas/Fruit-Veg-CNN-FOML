@@ -17,5 +17,3 @@ backend/.env
 mlflow.db*
 mlartifacts/
 backend/*.keras
-!backend/model4_v2_fixed.keras
-!backend/veg_fruit_classifier_mobilenetv2_128.keras
