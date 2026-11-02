@@ -36,3 +36,10 @@ venv/
 /mlflow.db-shm
 /mlflow.db-wal
 /mlartifacts/
+# Terraform
+**/.terraform/*
+*.tfstate
+*.tfstate.*
+*.tfplan
+crash.log
+crash.*.log
