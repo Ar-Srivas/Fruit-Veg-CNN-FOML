@@ -79,6 +79,17 @@ npm run dev
 
 Visit `http://localhost:3000` to access the application.
 
+### Run the backend and `frontend2` in Docker
+
+Build the image from the repository root (the build context must include both `backend/` and `frontend2/`):
+
+```bash
+docker build -t foodlens .
+docker run --rm -p 8000:8000 foodlens
+```
+
+Open `http://localhost:8000`. To enable recipe lookup, provide the backend's `API_KEY` at runtime, for example with `docker run --rm -p 8000:8000 --env-file backend/.env foodlens`. The `.env` file is not copied into the image.
+
 ## 🔗 API Endpoints
 
 | Endpoint | Method | Description |
