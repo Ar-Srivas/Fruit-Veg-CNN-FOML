@@ -1,4 +1,4 @@
-const API_BASE_URL = "http://127.0.0.1:8000";
+const API_BASE_URL = window.location.origin;
 const ingredientsInput = document.querySelector("#ingredients-input");
 const ingredientForm = document.querySelector("#ingredient-form");
 const ingredientChips = document.querySelector("#ingredient-chips");

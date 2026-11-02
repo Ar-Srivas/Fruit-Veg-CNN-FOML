@@ -5,7 +5,14 @@ from fastapi.staticfiles import StaticFiles
 from PIL import Image
 import io
 import os
+from time import perf_counter
 from pathlib import Path
+from metrics import (
+    PrometheusMiddleware,
+    metrics_app,
+    observe_inference,
+    record_prediction,
+)
 from recipe_api import dish_router
 from model_classifier import predict_single_image
 from model_finetuned import detect_and_classify, draw_predictions_on_image
@@ -13,6 +20,7 @@ from model_finetuned import detect_and_classify, draw_predictions_on_image
 
 app = FastAPI()
 app.include_router(dish_router, prefix="/api")
+app.add_middleware(PrometheusMiddleware)
 FRONTEND2_DIR = Path(__file__).resolve().parent.parent / "frontend2"
 
 ENVIRONMENT = os.getenv("ENVIRONMENT", "development")
@@ -95,7 +103,12 @@ async def predict_image():
     if uploaded_image["original_image"] is None:
         raise HTTPException(status_code=404, detail="No uploaded image found")
 
-    result = predict_single_image(uploaded_image["original_image"])
+    started_at = perf_counter()
+    try:
+        result = predict_single_image(uploaded_image["original_image"])
+    finally:
+        observe_inference(started_at)
+    record_prediction(result["label"])
 
     return JSONResponse({
         "prediction": result,
@@ -109,10 +122,16 @@ async def predict_many(threshold: float = 0.5):
     if uploaded_image["original_image"] is None:
         raise HTTPException(status_code=404, detail="No uploaded image found")
 
-    detections = detect_and_classify(
-        uploaded_image["original_image"],
-        score_threshold=threshold
-    )
+    started_at = perf_counter()
+    try:
+        detections = detect_and_classify(
+            uploaded_image["original_image"],
+            score_threshold=threshold
+        )
+    finally:
+        observe_inference(started_at)
+    for detection in detections:
+        record_prediction(detection["label"])
 
     # Store detections for visualization
     uploaded_image["detections"] = detections
@@ -133,10 +152,16 @@ async def visualize_detections(threshold: float = 0.5):
 
     # Get or recompute detections
     if uploaded_image["detections"] is None:
-        detections = detect_and_classify(
-            uploaded_image["original_image"],
-            score_threshold=threshold
-        )
+        started_at = perf_counter()
+        try:
+            detections = detect_and_classify(
+                uploaded_image["original_image"],
+                score_threshold=threshold
+            )
+        finally:
+            observe_inference(started_at)
+        for detection in detections:
+            record_prediction(detection["label"])
         uploaded_image["detections"] = detections
     else:
         detections = uploaded_image["detections"]
@@ -208,8 +233,13 @@ async def reset_session():
     return {"message": "Session reset successfully"}
 
 
-@app.get("/health/")
+@app.get("/health")
 async def health_check():
+    return {"status": "ok"}
+
+
+@app.get("/health/", include_in_schema=False)
+async def detailed_health_check():
     return {
         "status": "healthy",
         "environment": ENVIRONMENT,
@@ -217,4 +247,5 @@ async def health_check():
     }
 
 
+app.mount("/metrics", metrics_app, name="metrics")
 app.mount("/", StaticFiles(directory=FRONTEND2_DIR, html=True), name="frontend2")

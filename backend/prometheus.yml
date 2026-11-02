@@ -1,0 +1,10 @@
+global:
+  scrape_interval: 5s
+  evaluation_interval: 5s
+
+scrape_configs:
+  - job_name: foodlens-app
+    metrics_path: /metrics
+    scrape_interval: 15s
+    static_configs:
+      - targets: ["foodlens-service:80"]

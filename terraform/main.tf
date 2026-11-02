@@ -27,7 +27,7 @@ resource "random_string" "acr_suffix" {
 
 resource "azurerm_resource_group" "rg" {
   name     = "rg-foodlens-mlops"
-  location = "Central India"
+  location = "indiasouthcentral"
 }
 
 resource "azurerm_container_registry" "acr" {

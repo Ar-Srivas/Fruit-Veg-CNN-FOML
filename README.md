@@ -90,6 +90,26 @@ docker run --rm -p 8000:8000 foodlens
 
 Open `http://localhost:8000`. To enable recipe lookup, provide the backend's `API_KEY` at runtime, for example with `docker run --rm -p 8000:8000 --env-file backend/.env foodlens`. The `.env` file is not copied into the image.
 
+### Deploy to Kubernetes
+
+`k8s/deployment.yaml` expects the ACR login server from Terraform and an image tag to be substituted into its image field before applying. The deployment uses one replica because uploaded images and detections are stored in FastAPI process memory. The optional `foodlens-secrets` Kubernetes Secret can supply the Spoonacular `API_KEY`.
+
+### Prometheus metrics
+
+The backend exposes request, inference-latency, and prediction-class metrics at `/metrics`. The scrape configuration in `backend/prometheus.yml` targets `foodlens-service:80`, the Kubernetes Service port; Prometheus must run in the same Kubernetes namespace or use the service's fully qualified DNS name.
+
+### Run FoodLens with Prometheus and Grafana
+
+Start the backend, Prometheus, and Grafana together from the repository root:
+
+```bash
+docker compose up --build -d
+```
+
+Open FoodLens at `http://localhost:8000`, Prometheus at `http://localhost:9090`, and Grafana at `http://localhost:3000`. Sign in to Grafana with username `admin` and the local default password `foodlens-local`. Change it before sharing the stack by setting `GRAFANA_ADMIN_PASSWORD` in your shell. Grafana is provisioned with the Prometheus data source and the FoodLens Overview dashboard. Prometheus scrapes the backend at `backend:8000` on the Compose network.
+
+To enable Spoonacular recipe lookup, set `API_KEY` in your shell before starting the stack. Stop the services with `docker compose down`; named volumes retain Grafana and Prometheus data. Add `-v` to `docker compose down` only if you intend to delete that stored data.
+
 ## 🔗 API Endpoints
 
 | Endpoint | Method | Description |

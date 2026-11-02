@@ -1,0 +1,74 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: foodlens-app
+  labels:
+    app: foodlens-app
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: foodlens-app
+  template:
+    metadata:
+      labels:
+        app: foodlens-app
+    spec:
+      containers:
+        - name: foodlens
+          image: ${ACR_LOGIN_SERVER}/foodlens:${IMAGE_TAG}
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: http
+              containerPort: 8000
+              protocol: TCP
+          env:
+            - name: ENVIRONMENT
+              value: production
+            - name: API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: foodlens-secrets
+                  key: API_KEY
+                  optional: true
+          startupProbe:
+            httpGet:
+              path: /health
+              port: http
+            periodSeconds: 10
+            failureThreshold: 60
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: http
+            periodSeconds: 10
+            failureThreshold: 3
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: http
+            periodSeconds: 20
+            failureThreshold: 3
+          resources:
+            requests:
+              memory: 1Gi
+              cpu: 500m
+            limits:
+              memory: 2Gi
+              cpu: 1500m
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: foodlens-service
+  labels:
+    app: foodlens-app
+spec:
+  type: LoadBalancer
+  selector:
+    app: foodlens-app
+  ports:
+    - name: http
+      port: 80
+      targetPort: http
+      protocol: TCP
