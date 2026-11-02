@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#f6f7f2">
+    <title>FoodLens — Recipe Finder</title>
+    <link rel="stylesheet" href="styles.css">
+    <script src="recipes.js" defer></script>
+  </head>
+  <body>
+    <header class="topbar">
+      <a class="brand" href="index.html" aria-label="FoodLens home">
+        <span class="brand-mark" aria-hidden="true">F</span>
+        <span>foodlens<span class="brand-period">.</span></span>
+      </a>
+      <nav class="top-nav" aria-label="Main navigation">
+        <a class="nav-link" href="index.html">Freshness checker</a>
+        <a class="nav-link active" href="recipes.html">Recipe finder</a>
+      </nav>
+      <span class="api-indicator"><span class="status-dot"></span> GOOD FOOD, MADE EASY</span>
+    </header>
+
+    <main class="page-shell recipes-shell">
+      <section class="hero recipe-hero">
+        <div class="hero-copy">
+          <p class="eyebrow"><span aria-hidden="true">✳</span> MAKE THE MOST OF WHAT YOU HAVE</p>
+          <h1>A little inspiration<br>for <span>what’s in your kitchen.</span></h1>
+          <p class="hero-description">Tell us what ingredients you have on hand and we’ll find recipes worth gathering around.</p>
+        </div>
+        <div class="hero-art recipe-art" aria-hidden="true">
+          <span class="art-sparkle sparkle-one">✳</span>
+          <span class="recipe-bowl">⌂</span>
+          <span class="art-fruit fruit-orange">●</span>
+          <span class="art-fruit fruit-green">●</span>
+          <span class="art-sparkle sparkle-two">✳</span>
+        </div>
+      </section>
+
+      <section class="panel ingredient-panel">
+        <div class="section-heading">
+          <span class="step-number">01</span>
+          <div>
+            <h2>What do you have?</h2>
+            <p>Enter ingredients separated by commas.</p>
+          </div>
+        </div>
+        <form class="ingredient-form" id="ingredient-form">
+          <label class="visually-hidden" for="ingredients-input">Your ingredients</label>
+          <input id="ingredients-input" type="text" placeholder="e.g. apple, banana, carrot" autocomplete="off">
+          <button class="button button-primary" id="find-recipes" type="submit">Find recipes <span aria-hidden="true">→</span></button>
+        </form>
+        <div class="ingredient-chips" id="ingredient-chips" aria-live="polite"></div>
+        <p class="message" id="recipe-message" role="status" aria-live="polite" hidden></p>
+      </section>
+
+      <section id="recipe-list" class="recipe-list" aria-live="polite"></section>
+
+      <footer class="footer">
+        <a href="index.html"><span aria-hidden="true">←</span> Back to freshness checker</a>
+        <span><span class="brand-mini">F</span> A little more love for the food we have.</span>
+      </footer>
+    </main>
+  </body>
+</html>
