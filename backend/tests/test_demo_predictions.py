@@ -30,6 +30,11 @@ class DemoPredictionTests(unittest.TestCase):
             x1, y1, x2, y2 = prediction["bbox"]
             self.assertTrue(0 <= x1 < x2 <= image.width)
             self.assertTrue(0 <= y1 < y2 <= image.height)
+
+        # Uncomment to confirm the bounds assertion catches a broken box:
+        # x1, y1, x2, y2 = -1, 0, image.width + 1, image.height
+        # self.assertTrue(0 <= x1 < x2 <= image.width)
+
         self.assertIsNotNone(ImageChops.difference(image, annotated).getbbox())
 
 
